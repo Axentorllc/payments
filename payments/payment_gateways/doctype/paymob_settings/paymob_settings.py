@@ -3,8 +3,8 @@
 
 import frappe
 from frappe.model.document import Document
-# from press.api.local_payments.paymob.accept_api import AcceptAPI
 
+from payments.payment_gateways.paymob.accept_api import AcceptAPI
 
 class PaymobSettings(Document):
 	# begin: auto-generated types
@@ -26,10 +26,10 @@ class PaymobSettings(Document):
 	
 	@frappe.whitelist()
 	def get_access_token(self):
-		# accept = AcceptAPI()
-		# token = accept.retrieve_auth_token()
-		# return token
-		pass
+		accept = AcceptAPI()
+		token = accept.retrieve_auth_token()
+		return token
+
 
 @frappe.whitelist()
 def update_paymob_settings(**kwargs):
