@@ -1,0 +1,133 @@
+{
+ "actions": [],
+ "creation": "2025-10-18 16:56:59.497637",
+ "doctype": "DocType",
+ "document_type": "System",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "credentials_section",
+  "api_key",
+  "public_key",
+  "hmac",
+  "column_break_zqdp",
+  "token",
+  "secret_key",
+  "payment_config",
+  "iframe",
+  "column_break_kbhp",
+  "payment_integration"
+ ],
+ "fields": [
+  {
+   "fieldname": "credentials_section",
+   "fieldtype": "Section Break",
+   "label": "Credentials"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "API Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "public_key",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "Public Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hmac",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "HMAC",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zqdp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "token",
+   "fieldtype": "Password",
+   "label": "Token"
+  },
+  {
+   "fieldname": "secret_key",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "Secret Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payment_config",
+   "fieldtype": "Section Break",
+   "label": "Payment Config"
+  },
+  {
+   "fieldname": "iframe",
+   "fieldtype": "Data",
+   "label": "Iframe",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_kbhp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_integration",
+   "fieldtype": "Int",
+   "label": "Payment Integration",
+   "reqd": 1
+  }
+ ],
+ "in_create": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-10-18 17:03:04.268617",
+ "modified_by": "carlos@axentor.co",
+ "module": "Payment Gateways",
+ "name": "Paymob Settings",
+ "owner": "carlos@axentor.co",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "read_only": 1,
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
