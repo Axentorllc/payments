@@ -125,7 +125,16 @@ class PaymobSettings(Document):
 				frappe.throw(_("Failed to create order in Paymob"))
 				
 			order=feedback.data
+			paymob_order_id=order.get('id')
+
+			import json 
+			integration_request_dict=json.loads(integration_request.data)
+			integration_request_dict["paymob_order_id"]= str(paymob_order_id)
 			order["integration_request"] = integration_request.name
+			integration_request.data = json.dumps(integration_request_dict)
+			integration_request.save(ignore_permissions=True)
+			frappe.db.commit()
+
 			return order
 		except Exception:
 			frappe.log_error(frappe.get_traceback())
@@ -160,54 +169,76 @@ def callback():
 		# HMAC is valid, extract transaction data
 		obj_data = incoming_data_json.get("obj", {})
 		success = obj_data.get("success")
+		pending = obj_data.get("pending")
+		payment_status = obj_data.get("order", {}).get("payment_status")
+		txn_response_code = obj_data.get("data", {}).get("txn_response_code")
+		paymob_payment_id = obj_data.get("id")
+		paymob_order_id = obj_data.get("order", {}).get("id")
 
-		billing_data = obj_data.get("payment_key_claims", {}).get("billing_data", {})
-		payer_email=billing_data.get("email",)
+		# Validate all success conditions
+		is_payment_successful = (
+			success is True and
+			pending is False and
+			str(payment_status).upper() == "PAID" and
+			str(txn_response_code).upper() == "APPROVED"
+		)
+
+		# Find the Integration Request based on order_id
+		if not paymob_order_id:
+			return "Missing order ID"
+
+		integration_requests = frappe.get_all(
+			"Integration Request",
+			filters={
+				"integration_request_service": "Paymob",
+				"data": ["like", f'%\"paymob_order_id\": \"{paymob_order_id}\"%']
+			},
+			fields=["name", "data", "reference_doctype", "reference_docname"],
+			order_by="creation desc",
+			limit=1
+		)
+
+		import json
+		integration_request_doc = frappe.get_doc("Integration Request", integration_requests[0].name)
+		integration_request_dict = json.loads(integration_request_doc.data)
+		integration_request_dict["paymob_payment_id"] = str(paymob_payment_id)
+		integration_request_dict["order_id"] = str(paymob_order_id)
 		
-		# Check if transaction succeeded
-		if success is True or str(success).lower() == "true":
-			# Get payment and order IDs
-			paymob_payment_id = obj_data.get("id")
-			paymob_order_id = obj_data.get("order", {}).get("id")
-
-			if not paymob_order_id:
-				return "Missing order ID"
-
-			# Find the Event Payment document based on order_id stored in Integration Request
-			integration_requests = frappe.get_all(
-				"Integration Request",
-				filters={
-					"data": ["like", f'%\"payer_email\": \"{payer_email}\"%'],
-					"integration_request_service": "Paymob"
-				},
-				fields=["name", "data"],
-				order_by="creation desc",
-				limit=1
-			)
-
-			if not integration_requests:
-				return f"No matching order found for Paymob order ID: {paymob_order_id}"
-
-			# Parse the integration request data to get payment reference
-			import json
-			integration_data = json.loads(integration_requests[0].data)
-			event_payment_id = integration_data.get("payment")
-
-			if not event_payment_id:
-				return "No payment reference found"
-
-			# Update the Event Payment document
-			payment_doc = frappe.get_doc("Event Payment", event_payment_id)
-			payment_doc.payment_received = 1
-			payment_doc.payment_id = str(paymob_payment_id)
-			payment_doc.order_id = str(paymob_order_id)
-			payment_doc.flags.ignore_permissions = True
-			payment_doc.save()
+		# Update the data field with additional information
+		integration_request_doc.data = json.dumps(integration_request_dict)
+		
+		# Check if transaction succeeded / paid
+		if is_payment_successful:
+			# Update integration request status
+			integration_request_doc.save(ignore_permissions=True)
 			frappe.db.commit()
+			
+			# Call on_payment_authorized on the reference document
+			if integration_request_dict['reference_doctype'] and integration_request_dict['reference_docname']:
+				custom_redirect_to = None
+				try:
+					custom_redirect_to = frappe.get_doc(
+						integration_request_dict['reference_doctype'],
+						integration_request_dict['reference_docname']
+					).run_method("on_payment_authorized", "Completed")
+					
+
+				except Exception:
+					frappe.log_error(frappe.get_traceback(), "Paymob on_payment_authorized Error")
+
+				if custom_redirect_to:
+					frappe.local.response["type"] = "redirect"
+					frappe.local.response["location"] = custom_redirect_to
+					return
 
 			return "Payment verified successfully"
 		else:
 			# Payment failed or was cancelled
+			integration_request_doc.status = "Failed"
+			integration_request_doc.error = f"Payment Status: {payment_status}, Response Code: {txn_response_code}"
+			integration_request_doc.save(ignore_permissions=True)
+			frappe.db.commit()
+			
 			return "Payment failed or was cancelled"
 
 	except Exception as e:
