@@ -4,7 +4,7 @@
 """
 # Integrating PayPal
 
-### 1. Validate Currency Support
+### 1. Validate Currency Support. 
 
 Example:
 
